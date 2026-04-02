@@ -16,7 +16,7 @@ import {
 import { addToCart, checkPaymentStatus, createDepositQR } from '@/app/actions/order'
 
 import '../woodslab.css'
-
+ 
 // --- CONFIG ---
 const BUCKET = "product-images"
 const PROJECT_URL = "https://zexflchjcycxrpjkuews.supabase.co"
@@ -180,8 +180,8 @@ function ProductContent() {
   // ✅ LOGIC ใหม่: เช็ค stock ก่อน status (Consistency with Main Page)
   const getEffectiveStatus = useCallback((row: any) => {
     // 1. เช็คสต็อกก่อน (สำคัญที่สุด)
-    const qty = getStockQty(row);
-    if (qty <= 0) return "sold"; // หมด
+   // const qty = getStockQty(row);
+    //if (qty <= 0) return "sold"; // หมด
 
     // 2. ถ้ามี Legacy pending flag
     if (row?.specs?.pending === true || row?.specs?.pending === "true") return "pending"
@@ -333,17 +333,10 @@ function ProductContent() {
   }
 
   // --- RENDER HELPERS ---
-  const renderStatusOverlay = (meta: any) => {
-    if (!meta.overlay) return null
-    return (
-      <div className="status-overlay">
-        <div className={`status-circle ${meta.key}`}>
-          {meta.jp && <div className="jp">{meta.jp}</div>}
-          <div className="en">{meta.en || meta.label}</div>
-        </div>
-      </div>
-    )
-  }
+  // ค้นหาฟังก์ชันนี้แล้วแก้เป็นแบบนี้ครับนาย
+const renderStatusOverlay = (meta: any) => {
+  return null; // สั่งให้ไม่ต้องวาดอะไรเลย
+}
   
   // ใช้ Logic เดียวกับหน้าหลักสำหรับการ์ดสินค้าแนะนำ
   const renderRecBadge = (status: string) => {
@@ -425,12 +418,13 @@ const maxStock = getStockQty(product)
         }
 
         .main-image-frame img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            transition: transform 0.2s ease-out;
-            display: block;
-        }
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* เปลี่ยนเป็น cover เพื่อให้เต็มกรอบ */
+    object-position: center;
+    transition: transform 0.2s ease-out;
+    display: block;
+}
 
         .main-image-frame.zoomed img {
             transform: scale(2);
@@ -536,7 +530,12 @@ const maxStock = getStockQty(product)
             margin-bottom: 12px;
             display: flex; align-items: center; justify-content: center;
         }
-        .rec-img img { width: 100%; height: 100%; object-fit: contain; }
+        .rec-img img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+    object-position: center; 
+}
         .rec-noimg { color: #ccc; font-size: 0.8rem; }
         
         .rec-body { text-align: center; }
@@ -699,7 +698,7 @@ const maxStock = getStockQty(product)
               ) : (
                  <>
                    {meta.key === 'on_request' && <span style={{color:'#f39c12'}}>● {meta.label}</span>}
-                   {(meta.key === 'pending' || meta.key === 'sold') && <span>This item is {meta.label}. Purchase is disabled.</span>}
+                   {(meta.key === 'pending' || meta.key === 'sold') && <span>This item is {meta.label}. อยู่ในช่วงพัฒนา</span>}
                  </>
               )}
             </div>

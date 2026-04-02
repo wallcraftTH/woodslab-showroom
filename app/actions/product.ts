@@ -11,7 +11,7 @@ const TABLE = "products"
 const LIST_SELECT = "id,name,sku,barcode,price,image_url,status,specs,updated_at,created_at,stock(qty)"
 
 // --- Helper Functions ---
-const getPrefix = (category: string) => category === 'rough' ? 'ROUGH-' : 'WOODSLABS'
+const getDbCategory = (category: string) => category === 'rough' ? 'rough_wood' : 'SLABS'
 
 // 🔹 ฟังก์ชันสร้าง Client แบบอ่าน Cookie (สำหรับระบบ User/Auth)
 async function createAuthClient() {
@@ -64,32 +64,26 @@ export async function getActiveDiscounts() {
   return data || []
 }
 
-// 1.2 ✅ แก้ไขเฉพาะฟังก์ชันนี้: กรองสินค้าหมดออกจากรายการหลัก
+// 1.2 ✅ กรองสินค้าหลัก (Main Listing)
 export async function getProducts(page: number, limit: number, filters: FilterState, category: 'slabs' | 'rough' = 'slabs') {
   const offset = page * limit
-  const skuPrefix = getPrefix(category)
+  const targetCategory = getDbCategory(category) // แปลงค่า
 
-  // 🔥 เปลี่ยน 1: ใช้ !inner เพื่อบังคับว่าต้องมีข้อมูลในตาราง stock
-  const LIST_SELECT_ACTIVE = "id,name,sku,barcode,price,image_url,status,specs,updated_at,created_at,stock!inner(qty)"
+  const LIST_SELECT_ACTIVE = "id,name,sku,barcode,price,image_url,status,specs,updated_at,created_at,category_id,stock(qty)"
 
   let query = supabaseServer
     .from(TABLE)
-    .select(LIST_SELECT_ACTIVE) // ✅ ใช้ตัวแปรใหม่
-    .ilike('sku', `${skuPrefix}%`)
-    
-    // 🔥 เปลี่ยน 2: กรองเอาเฉพาะตัวที่ qty > 0 เท่านั้น
-    .gt('stock.qty', 0) 
-
+    .select(LIST_SELECT_ACTIVE)
+    .eq('category_id', targetCategory) // 🔥 กรองจาก category_id ตรงๆ
     .range(offset, offset + limit - 1)
     .order('status', { ascending: true })
     .order('updated_at', { ascending: false })
 
-  // --- Apply Filters (โลจิกเดิม 100%) ---
+  // --- Apply Filters (โลจิกเดิม) ---
   if (filters.type) query = query.eq('specs->>spec_type', filters.type)
   if (filters.material) query = query.eq('specs->>material', filters.material)
   if (filters.panel) query = query.eq('specs->>panel_craft', filters.panel)
 
-  // Status Filter
   const statusMap: Record<string, string[]> = {
     available: ["available", "active"],
     pending: ["pending", "reserved", "hold", "on_request"],
@@ -101,7 +95,6 @@ export async function getProducts(page: number, limit: number, filters: FilterSt
     query = query.in('status', statusMap[filters.status])
   }
 
-  // Range Filters
   if (filters.lengthMin) query = query.gte('specs->>length_cm', Number(filters.lengthMin))
   if (filters.lengthMax) query = query.lte('specs->>length_cm', Number(filters.lengthMax))
   
@@ -111,11 +104,9 @@ export async function getProducts(page: number, limit: number, filters: FilterSt
   if (filters.thickMin) query = query.gte('specs->>thickness_cm', Number(filters.thickMin))
   if (filters.thickMax) query = query.lte('specs->>thickness_cm', Number(filters.thickMax))
 
-  // Price Filter
   if (filters.priceMin) query = query.gte('price', Number(filters.priceMin))
   if (filters.priceMax) query = query.lte('price', Number(filters.priceMax))
 
-  // Search Logic
   if (filters.q) {
     const qq = filters.q.replaceAll(",", " ")
     query = query.or(`name.ilike.%${qq}%,barcode.ilike.%${qq}%,sku.ilike.%${qq}%`)
@@ -125,25 +116,23 @@ export async function getProducts(page: number, limit: number, filters: FilterSt
   return data || []
 }
 
-// 1.3 ✅ กู้คืน: ดึงค่า Min/Max สำหรับ Slider (เหมือนเดิม)
+// 1.3 ✅ ดึงค่า Min/Max สำหรับ Slider
 export async function getMinMax(col: string, category: 'slabs' | 'rough' = 'slabs') {
-  const skuPrefix = getPrefix(category)
+  const targetCategory = getDbCategory(category)
 
-  // Fetch Min
   const { data: minData } = await supabaseServer
     .from(TABLE)
     .select(col)
-    .ilike('sku', `${skuPrefix}%`)
+    .eq('category_id', targetCategory) // 🔥 กรองจาก category_id
     .not(col, 'is', null)
     .order(col, { ascending: true })
     .limit(1)
     .single()
 
-  // Fetch Max
   const { data: maxData } = await supabaseServer
     .from(TABLE)
     .select(col)
-    .ilike('sku', `${skuPrefix}%`)
+    .eq('category_id', targetCategory) // 🔥 กรองจาก category_id
     .not(col, 'is', null)
     .order(col, { ascending: false })
     .limit(1)
@@ -155,14 +144,14 @@ export async function getMinMax(col: string, category: 'slabs' | 'rough' = 'slab
   }
 }
 
-// 1.4 ✅ กู้คืน: ดึงค่าสำหรับ Histogram (เหมือนเดิม)
+// 1.4 ✅ ดึงค่าสำหรับ Histogram
 export async function getRangeValues(col: string, category: 'slabs' | 'rough' = 'slabs') {
-  const skuPrefix = getPrefix(category)
+  const targetCategory = getDbCategory(category)
 
   const { data } = await supabaseServer
     .from(TABLE)
     .select(col)
-    .ilike('sku', `${skuPrefix}%`)
+    .eq('category_id', targetCategory) // 🔥 กรองจาก category_id
     .not(col, 'is', null)
     .limit(2000)
 
@@ -170,14 +159,14 @@ export async function getRangeValues(col: string, category: 'slabs' | 'rough' = 
   return data.map((r: any) => Number(r[col])).filter(n => Number.isFinite(n))
 }
 
-// 1.5 ✅ กู้คืน: ดึงตัวเลือกสำหรับ Dropdown (Type, Material, Panel) (เหมือนเดิม)
+// 1.5 ✅ ดึงตัวเลือกสำหรับ Dropdown
 export async function getDistinctOptions(category: 'slabs' | 'rough' = 'slabs') {
-  const skuPrefix = getPrefix(category)
+  const targetCategory = getDbCategory(category)
 
   const { data } = await supabaseServer
     .from(TABLE)
     .select('specs')
-    .ilike('sku', `${skuPrefix}%`)
+    .eq('category_id', targetCategory) // 🔥 กรองจาก category_id
     .limit(3000)
 
   const sets = {
@@ -199,7 +188,6 @@ export async function getDistinctOptions(category: 'slabs' | 'rough' = 'slabs') 
     panel: Array.from(sets.panel).sort((a, b) => a.localeCompare(b))
   }
 }
-
 // ==========================================
 // 2. ส่วน Product Detail
 // ==========================================
@@ -211,48 +199,64 @@ export async function getProductDetail(id?: string) {
   return data
 }
 
-// ✅ แก้ไข Recommend: ไม่แนะนำสินค้าที่หมด
+// ✅ อัลกอริทึมแนะนำสินค้า (Demo Version): แสดงสินค้าทั้งหมดไม่สน Status เอาให้เต็ม 8 ช่อง
 export async function getRecommendProducts(currentId: number | string, specs: any) {
-  const type = specs?.spec_type || ""
   const material = specs?.material || ""
-  const panel = specs?.panel_craft || ""
   
   const isRough = specs?.type === 'rough' || (specs?.sku && specs.sku.startsWith('ROUGH-'))
   const prefix = isRough ? 'ROUGH-' : 'WOODSLABS'
 
-  // 🔥 เปลี่ยน: ใช้ !inner และกรอง qty > 0
-  const selectCols = "id,name,sku,price,image_url,status,specs,updated_at,stock!inner(qty)"
+  const selectCols = "id,name,sku,price,image_url,status,specs,updated_at,favorite_count,stock(qty)"
 
-  // 1. Specific Query
+  // 🎯 Step 1: หาแผ่นที่ "ชนิดไม้เดียวกัน (Material)"
+  // เรียงตามความนิยม (favorite_count) ให้หน้าเดโมดูเนียนตา
   let q1 = supabaseServer
     .from(TABLE)
     .select(selectCols)
     .ilike("sku", `${prefix}%`)
-    .gt('stock.qty', 0) // ✅ กรองของหมดออก
-    .order("updated_at", { ascending: false })
+    // ❌ เอาบรรทัดกรอง status ออกแล้ว เพื่อโชว์ทุกอย่าง
     .neq("id", currentId)
-    .limit(8)
-
-  if (type) q1 = q1.eq("specs->>spec_type", type)
-  if (material) q1 = q1.eq("specs->>material", material)
-  if (panel) q1 = q1.eq("specs->>panel_craft", panel)
-
-  const { data: data1 } = await q1
-  if (data1 && data1.length > 0) return data1
-
-  // 2. Fallback
-  const { data: data2 } = await supabaseServer
-    .from(TABLE)
-    .select(selectCols)
-    .ilike("sku", `${prefix}%`)
-    .gt('stock.qty', 0) // ✅ กรองของหมดออก
-    .order("updated_at", { ascending: false })
-    .neq("id", currentId)
-    .limit(8)
     
-  return data2 || []
-}
+  if (material) {
+      q1 = q1.eq("specs->>material", material)
+  }
 
+  q1 = q1.order("favorite_count", { ascending: false }) 
+         .order("updated_at", { ascending: false })     
+         .limit(8)
+
+  const { data: matchedMaterial } = await q1
+  let results = matchedMaterial || []
+
+  // 🎯 Step 2: ถ้าไม้ชนิดเดียวกันมีไม่ถึง 8 แผ่น (ในเดโมของอาจจะยังน้อย)
+  // ให้ดึง "สินค้ายอดฮิตที่สุดในเดโม" มาเติมให้เต็ม 8 กรอบ
+  if (results.length < 8) {
+    const existingIds = new Set(results.map(r => r.id))
+    existingIds.add(currentId)
+
+    const { data: popularData } = await supabaseServer
+      .from(TABLE)
+      .select(selectCols)
+      .ilike("sku", `${prefix}%`)
+      // ❌ เอาบรรทัดกรอง status ออกแล้ว
+      .order("favorite_count", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(15) 
+
+    if (popularData) {
+      for (const item of popularData) {
+        if (!existingIds.has(item.id)) {
+          results.push(item)
+          existingIds.add(item.id)
+        }
+        // เติมจนครบ 8 แผ่นแล้วหยุด หน้าเว็บจะได้เรียงกรอบสวยๆ พอดี
+        if (results.length >= 8) break; 
+      }
+    }
+  }
+
+  return results
+}
 export async function purchaseProduct(id: number) {
   const { error } = await supabaseServer.from(TABLE).update({ status: 'on_request', updated_at: new Date().toISOString() }).eq('id', id)
   if (error) throw new Error(error.message)

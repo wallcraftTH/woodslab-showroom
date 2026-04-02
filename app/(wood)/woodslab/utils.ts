@@ -1,0 +1,147 @@
+// utils.ts
+
+export const escClass = (v: string) => String(v || "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+
+export const currency = (n: any) =>
+  n ? new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(n) : "ติดต่อสอบถาม";
+
+export const normalizeImg = (u: string) => {
+  const s = String(u || "").trim();
+  if (!s) return "";
+  if (/^https?:\/\//i.test(s)) return s;
+  const PROJECT_URL = "https://zexflchjcycxrpjkuews.supabase.co";
+  const BUCKET = "product-images";
+  return `${PROJECT_URL}/storage/v1/object/public/${BUCKET}/${s.replace(/^\/+/, "")}`;
+};
+
+export const getSizeText = (specs: any) => {
+  if (!specs || typeof specs !== "object") return "";
+  if (specs.size_raw) return specs.size_raw;
+  return specs.size_text || specs.size || specs.dimension || specs.dimensions || specs.Size || "";
+};
+
+export const getStockQty = (row: any) => {
+  if (!row.stock || !Array.isArray(row.stock)) return 0;
+  return row.stock.reduce((sum: number, item: any) => sum + (parseFloat(item.qty) || 0), 0);
+};
+
+export const normalizeStatus = (raw: string) => {
+  const s = String(raw || "").toLowerCase().trim();
+  if (s === "active") return "available";
+  if (s === "inactive") return "archived";
+  return s;
+};
+
+/**
+ * แก้ไขจุดนี้: ปิดการเช็คสต็อก (RFID) เพื่อให้สินค้าที่อัพโหลดใหม่แสดงผลได้ทันที
+ */
+export const getEffectiveStatus = (row: any) => {
+  // --- ส่วนที่เคยทำให้สินค้าหาย/กลายเป็น Sold เมื่อไม่มีสต็อก ถูกปิดไว้ชั่วคราว ---
+  // const qty = getStockQty(row);
+  // if (qty <= 0) return "sold"; 
+
+  const st = normalizeStatus(row?.status);
+  if (st === "draft") return "draft";
+  if (st === "on_request") return "on_request";
+  if (st === "pending" || st === "reserved") return "pending";
+  
+  if (st) return st;
+  return "available"; // ถ้าไม่มีสถานะใน DB ให้ถือว่า Available ไว้ก่อนเพื่อให้แสดงผล
+};
+
+export const calculateProductDiscount = (product: any, activeDiscounts: any[]) => {
+  if (!product.price || activeDiscounts.length === 0) return null;
+  const productPrice = parseFloat(product.price);
+
+  const matchingDiscounts = activeDiscounts.filter(d => {
+    const now = new Date();
+    if (d.start_date && new Date(d.start_date) > now) return false;
+    if (d.end_date && new Date(d.end_date) < now) return false;
+
+    const rules = d.discount_rules || [];
+    if (rules.length === 0) return true;
+
+    return rules.some((r: any) => {
+      const rulePid = r.product_id;
+      const isSpecificProduct = rulePid !== null && rulePid !== undefined && rulePid !== "" && String(rulePid) !== "null";
+      if (isSpecificProduct && String(rulePid) !== String(product.id)) return false;
+
+      const minSubtotal = parseFloat(r.min_subtotal || 0);
+      if (productPrice < minSubtotal) return false;
+      return true;
+    });
+  });
+
+  if (matchingDiscounts.length === 0) return null;
+
+  let bestDiscount = null;
+  let maxSaving = 0;
+
+  matchingDiscounts.forEach(d => {
+    let saving = 0;
+    const discountValue = parseFloat(d.value);
+    if (d.discount_type === 'PERCENT') {
+      saving = productPrice * (discountValue / 100);
+    } else {
+      saving = discountValue;
+    }
+    if (saving > productPrice) saving = productPrice;
+
+    if (saving > maxSaving) {
+      maxSaving = saving;
+      bestDiscount = { ...d, saving, newPrice: Math.max(0, productPrice - saving) };
+    }
+  });
+  return bestDiscount;
+};
+
+export const niceStep = (raw: number, key: string) => {
+  if (!Number.isFinite(raw) || raw <= 0) return key === "thickness" ? 0.5 : 10;
+  const base = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw / base;
+  let step;
+  if (n <= 1) step = 1;
+  else if (n <= 2) step = 2;
+  else if (n <= 5) step = 5;
+  else step = 10;
+  step *= base;
+  if (key === "thickness") {
+    step = Math.min(step, 2);
+    step = Math.max(step, 0.2);
+    step = Math.round(step * 10) / 10;
+  } else {
+    step = Math.max(5, Math.round(step / 5) * 5);
+  }
+  return step;
+};
+
+export const buildPresetsFromValues = (key: string, values: number[]) => {
+  if (!values?.length) return [];
+  const v = values.slice().sort((a, b) => a - b);
+  const n = v.length;
+  const min = v[0];
+  const max = v[n - 1];
+  const fmtNum = (num: number) => String(Math.round(num * 100) / 100).replace(/\.0+$/, "");
+
+  if (min === max) return [{ label: `${fmtNum(min)}`, min, max }];
+
+  const targetBins = 7;
+  let h = (max - min) / targetBins;
+  h = niceStep(h, key);
+
+  const start = Math.floor(min / h) * h;
+  const end = Math.ceil(max / h) * h;
+  const bins = [];
+  let i = 0;
+  for (let a = start; a < end; a += h) {
+    const b = a + h;
+    while (i < n && v[i] < a) i++;
+    let j = i;
+    while (j < n && v[j] <= b) j++;
+    if (j > i) {
+      bins.push({ label: `${fmtNum(a)}–${fmtNum(b)}`, min: a, max: b });
+    }
+    i = j;
+  }
+  return bins.slice(0, 12);
+};
