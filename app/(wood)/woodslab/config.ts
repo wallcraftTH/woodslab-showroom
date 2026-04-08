@@ -22,6 +22,16 @@ export const RANGE_COLS: Record<string, string> = {
   thickness: "thickness_cm",
 };
 
+export const PRODUCT_TYPES = [
+  "Wood slabs",
+  "Small table",
+  "Leg",
+  "Chair/Stool",
+  "Cabinet",
+  "Table",
+  "Small Furniture",
+];
+
 export const HEADERS = [
   { key: "type", label: "Type" },
   { key: "material", label: "Material" },

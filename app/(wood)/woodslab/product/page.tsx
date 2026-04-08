@@ -142,7 +142,7 @@ function ProductContent() {
         setDedupImages(uniqueImgs)
         if (uniqueImgs.length > 0) setActiveImage(uniqueImgs[0])
 
-        const recs = await getRecommendProducts(prod.id, prod.specs)
+        const recs = await getRecommendProducts(prod.id, prod.specs, prod.category_id)
         setRecommendations(recs)
       } catch (e) {
         console.error(e)

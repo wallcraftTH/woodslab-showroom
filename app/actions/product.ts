@@ -65,21 +65,38 @@ export async function getActiveDiscounts() {
 }
 
 // 1.2 ✅ กรองสินค้าหลัก (Main Listing)
-export async function getProducts(page: number, limit: number, filters: FilterState, category: 'slabs' | 'rough' = 'slabs') {
+export async function getProducts(
+  page: number,
+  limit: number,
+  filters: FilterState,
+  category: 'slabs' | 'rough' = 'slabs',
+  discountFilter?: number[] | 'all' | null
+) {
   const offset = page * limit
-  const targetCategory = getDbCategory(category) // แปลงค่า
+  const targetCategory = getDbCategory(category)
 
   const LIST_SELECT_ACTIVE = "id,name,sku,barcode,price,image_url,status,specs,updated_at,created_at,category_id,stock(qty)"
 
+  // ถ้า discount filter ระบุ ID เฉพาะแต่ไม่มีเลย → ไม่มีสินค้าที่มีส่วนลด
+  if (Array.isArray(discountFilter) && discountFilter.length === 0) {
+    return { data: [], count: 0 }
+  }
+
   let query = supabaseServer
     .from(TABLE)
-    .select(LIST_SELECT_ACTIVE)
-    .eq('category_id', targetCategory) // 🔥 กรองจาก category_id ตรงๆ
+    .select(LIST_SELECT_ACTIVE, { count: 'exact' })
+    .eq('category_id', targetCategory)
     .range(offset, offset + limit - 1)
     .order('status', { ascending: true })
     .order('updated_at', { ascending: false })
 
-  // --- Apply Filters (โลจิกเดิม) ---
+  // --- Discount filter (server-side) ---
+  if (Array.isArray(discountFilter) && discountFilter.length > 0) {
+    query = query.in('id', discountFilter)
+  }
+  // discountFilter === 'all' → ไม่ต้องกรอง ID (ทุกสินค้ามีส่วนลด)
+
+  // --- Standard Filters ---
   if (filters.type) query = query.eq('specs->>spec_type', filters.type)
   if (filters.material) query = query.eq('specs->>material', filters.material)
   if (filters.panel) query = query.eq('specs->>panel_craft', filters.panel)
@@ -90,20 +107,16 @@ export async function getProducts(page: number, limit: number, filters: FilterSt
     sold: ["sold", "archived", "inactive"],
     draft: ["draft"],
   }
-  
   if (filters.status !== 'all' && statusMap[filters.status]) {
     query = query.in('status', statusMap[filters.status])
   }
 
   if (filters.lengthMin) query = query.gte('specs->>length_cm', Number(filters.lengthMin))
   if (filters.lengthMax) query = query.lte('specs->>length_cm', Number(filters.lengthMax))
-  
   if (filters.widthMin) query = query.gte('specs->>width_cm', Number(filters.widthMin))
   if (filters.widthMax) query = query.lte('specs->>width_cm', Number(filters.widthMax))
-
   if (filters.thickMin) query = query.gte('specs->>thickness_cm', Number(filters.thickMin))
   if (filters.thickMax) query = query.lte('specs->>thickness_cm', Number(filters.thickMax))
-
   if (filters.priceMin) query = query.gte('price', Number(filters.priceMin))
   if (filters.priceMax) query = query.lte('price', Number(filters.priceMax))
 
@@ -112,8 +125,8 @@ export async function getProducts(page: number, limit: number, filters: FilterSt
     query = query.or(`name.ilike.%${qq}%,barcode.ilike.%${qq}%,sku.ilike.%${qq}%`)
   }
 
-  const { data } = await query
-  return data || []
+  const { data, count } = await query
+  return { data: data || [], count: count || 0 }
 }
 
 // 1.3 ✅ ดึงค่า Min/Max สำหรับ Slider
@@ -200,12 +213,9 @@ export async function getProductDetail(id?: string) {
 }
 
 // ✅ อัลกอริทึมแนะนำสินค้า (Demo Version): แสดงสินค้าทั้งหมดไม่สน Status เอาให้เต็ม 8 ช่อง
-export async function getRecommendProducts(currentId: number | string, specs: any) {
+export async function getRecommendProducts(currentId: number | string, specs: any, categoryId?: string) {
   const material = specs?.material || ""
   
-  const isRough = specs?.type === 'rough' || (specs?.sku && specs.sku.startsWith('ROUGH-'))
-  const prefix = isRough ? 'ROUGH-' : 'WOODSLABS'
-
   const selectCols = "id,name,sku,price,image_url,status,specs,updated_at,favorite_count,stock(qty)"
 
   // 🎯 Step 1: หาแผ่นที่ "ชนิดไม้เดียวกัน (Material)"
@@ -213,10 +223,12 @@ export async function getRecommendProducts(currentId: number | string, specs: an
   let q1 = supabaseServer
     .from(TABLE)
     .select(selectCols)
-    .ilike("sku", `${prefix}%`)
-    // ❌ เอาบรรทัดกรอง status ออกแล้ว เพื่อโชว์ทุกอย่าง
     .neq("id", currentId)
     
+  if (categoryId) {
+      q1 = q1.eq("category_id", categoryId)
+  }
+
   if (material) {
       q1 = q1.eq("specs->>material", material)
   }
@@ -234,14 +246,18 @@ export async function getRecommendProducts(currentId: number | string, specs: an
     const existingIds = new Set(results.map(r => r.id))
     existingIds.add(currentId)
 
-    const { data: popularData } = await supabaseServer
+    let q2 = supabaseServer
       .from(TABLE)
       .select(selectCols)
-      .ilike("sku", `${prefix}%`)
-      // ❌ เอาบรรทัดกรอง status ออกแล้ว
       .order("favorite_count", { ascending: false })
       .order("updated_at", { ascending: false })
       .limit(15) 
+
+    if (categoryId) {
+        q2 = q2.eq("category_id", categoryId)
+    }
+
+    const { data: popularData } = await q2
 
     if (popularData) {
       for (const item of popularData) {

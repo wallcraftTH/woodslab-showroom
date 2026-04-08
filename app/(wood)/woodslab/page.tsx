@@ -24,6 +24,8 @@ function WoodSlabContent() {
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(0)
   const [pageInfo, setPageInfo] = useState("—")
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalCount, setTotalCount] = useState(0)
   const [statusText, setStatusText] = useState("")
 
   const [openKey, setOpenKey] = useState("")
@@ -102,20 +104,39 @@ function WoodSlabContent() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        let rows = await getProducts(page, LIMIT, filters, currentCategory)
-
+        // คำนวณ discount filter server-side
+        let discountFilter: number[] | 'all' | null = null
         if (filters.discount === 'yes') {
-          rows = rows.filter((r: any) => calculateProductDiscount(r, activeDiscounts) !== null)
+          const now = new Date()
+          let allQualify = false
+          const qualifyingIds = new Set<number>()
+
+          for (const d of activeDiscounts) {
+            if (d.start_date && new Date(d.start_date) > now) continue
+            if (d.end_date && new Date(d.end_date) < now) continue
+            const rules = d.discount_rules || []
+            if (rules.length === 0) { allQualify = true; break }
+            for (const r of rules) {
+              const pid = r.product_id
+              if (pid === null || pid === undefined || pid === '') { allQualify = true; break }
+              qualifyingIds.add(Number(pid))
+            }
+            if (allQualify) break
+          }
+          discountFilter = allQualify ? 'all' : Array.from(qualifyingIds)
         }
 
+        const { data: rows, count } = await getProducts(page, LIMIT, filters, currentCategory, discountFilter)
+
         setProducts(rows)
+        setTotalCount(count)
+        const calculatedTotalPages = Math.ceil(count / LIMIT)
+        setTotalPages(calculatedTotalPages)
 
-        const from = rows?.length ? (page * LIMIT) + 1 : 0
-        const to = (page * LIMIT) + (rows?.length || 0)
-        const countLabel = filters.discount === 'yes' ? `${rows.length} (On Sale)` : rows.length
-
-        setPageInfo(`${from} — ${to}`)
-        setStatusText(`Displaying ${countLabel} items`)
+        const from = count === 0 ? 0 : (page * LIMIT) + 1
+        const to = Math.min((page * LIMIT) + LIMIT, count)
+        setPageInfo(`${from} — ${to} of ${count}`)
+        setStatusText(`Displaying ${filters.discount === 'yes' ? `${count} (On Sale)` : count} items`)
 
       } catch (err) {
         console.error(err)
@@ -157,7 +178,7 @@ function WoodSlabContent() {
       <style jsx global>{`
         .badge-on_request { background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c) !important; color: #1a1a1a !important; font-weight: 700 !important; text-shadow: 0 0.5px 1px rgba(255,255,255,0.5); border: 1px solid #96701c !important; padding: 3px 10px !important; border-radius: 4px !important; display: inline-block; font-size: 11px !important; }
         .badge-discount { background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 6px; box-shadow: 0 2px 5px rgba(255, 65, 108, 0.4); display: inline-block; vertical-align: middle; }
-        .price-old { text-decoration: line-through; color: #9ca3af; font-size: 0.9em; margin-right: 6px; font-weight: 400; }
+        .price-old { text-decoration: line-thhh; color: #9ca3af; font-size: 0.9em; margin-right: 6px; font-weight: 400; }
         .price-new { color: #e11d48; font-weight: 700; font-size: 1.1em; }
         [data-theme="dark"] .price-new { color: #fb7185; }
         
@@ -177,38 +198,10 @@ function WoodSlabContent() {
           </div>
         </header>
 
-        <div className="flex justify-center gap-6 mb-12">
-          <button
-            suppressHydrationWarning={true}
-            onClick={() => handleCategoryChange('slabs')}
-            className={`group relative inline-block px-12 py-4 border uppercase tracking-[0.3em] text-[10px] font-bold transition-all duration-500 overflow-hidden ${currentCategory === 'slabs' ? 'border-[#d4a373]' : 'border-zinc-200 hover:border-[#d4a373]'
-              }`}
-          >
-            <span className={`absolute inset-0 bg-[#d4a373] transition-all duration-500 ease-out ${currentCategory === 'slabs' ? 'w-full' : 'w-0 group-hover:w-full'
-              }`}></span>
-            <span className={`relative z-10 transition-colors duration-500 ${currentCategory === 'slabs' ? 'text-white' : 'text-zinc-800 group-hover:text-white'
-              }`}>
-              Wood Slabs
-            </span>
-          </button>
-
-          <button
-            suppressHydrationWarning={true}
-            onClick={() => handleCategoryChange('rough')}
-            className={`group relative inline-block px-12 py-4 border uppercase tracking-[0.3em] text-[10px] font-bold transition-all duration-500 overflow-hidden ${currentCategory === 'rough' ? 'border-[#d4a373]' : 'border-zinc-200 hover:border-[#d4a373]'
-              }`}
-          >
-            <span className={`absolute inset-0 bg-[#d4a373] transition-all duration-500 ease-out ${currentCategory === 'rough' ? 'w-full' : 'w-0 group-hover:w-full'
-              }`}></span>
-            <span className={`relative z-10 transition-colors duration-500 ${currentCategory === 'rough' ? 'text-white' : 'text-zinc-800 group-hover:text-white'
-              }`}>
-              Rough Wood
-            </span>
-          </button>
-        </div>
-
-        <div className="controls">
+        <div className="controls" style={{ marginTop: '30px' }}>
           <FilterBar
+            currentCategory={currentCategory}
+            handleCategoryChange={handleCategoryChange}
             filters={filters}
             setFilters={setFilters}
             handleFilterChange={handleFilterChange}
@@ -243,10 +236,78 @@ function WoodSlabContent() {
           )}
         </div>
 
-        <div className="footer-bar">
-          <button className="btn-page" disabled={page <= 0} onClick={() => setPage(page - 1)}>Previous</button>
-          <div style={{ fontSize: '0.9rem', letterSpacing: '0.1em' }}>{pageInfo}</div>
-          <button className="btn-page" disabled={products.length < LIMIT} onClick={() => setPage(page + 1)}>Next</button>
+        <div className="footer-bar" style={{ marginTop: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button 
+              className="btn-page-nav hover:bg-gray-50" 
+              disabled={page <= 0} 
+              onClick={() => setPage(page - 1)}
+              style={{
+                 padding: '8px 16px', borderRadius: '8px', border: '1px solid #eaeaea', backgroundColor: '#fff', color: '#333', fontSize: '0.9rem', fontWeight: 500, cursor: page <= 0 ? 'not-allowed' : 'pointer', opacity: page <= 0 ? 0.5 : 1, transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            >
+              ← Prev
+            </button>
+            
+            {totalPages > 0 && (
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {Array.from({ length: totalPages }, (_, i) => {
+                  if (
+                    i === 0 || 
+                    i === totalPages - 1 || 
+                    (i >= page - 1 && i <= page + 1)
+                  ) {
+                    const isActive = page === i;
+                    return (
+                      <button 
+                        key={i} 
+                        onClick={() => setPage(i)}
+                        className="btn-page-number hover:-translate-y-0.5"
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '8px',
+                          background: isActive ? '#d4a373' : '#fff',
+                          color: isActive ? '#fff' : '#444',
+                          border: isActive ? '1px solid #d4a373' : '1px solid #eaeaea',
+                          fontWeight: isActive ? 600 : 400,
+                          fontSize: '0.95rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          boxShadow: isActive ? '0 4px 10px rgba(212, 163, 115, 0.3)' : '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                      >
+                        {i + 1}
+                      </button>
+                    )
+                  } else if (
+                    i === page - 2 || 
+                    i === page + 2
+                  ) {
+                    return <span key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', color: '#999', fontSize: '1.2rem', letterSpacing: '1px' }}>...</span>
+                  }
+                  return null;
+                })}
+              </div>
+            )}
+
+            <button 
+              className="btn-page-nav hover:bg-gray-50" 
+              disabled={page >= totalPages - 1 || totalPages === 0} 
+              onClick={() => setPage(page + 1)}
+              style={{
+                 padding: '8px 16px', borderRadius: '8px', border: '1px solid #eaeaea', backgroundColor: '#fff', color: '#333', fontSize: '0.9rem', fontWeight: 500, cursor: (page >= totalPages - 1 || totalPages === 0) ? 'not-allowed' : 'pointer', opacity: (page >= totalPages - 1 || totalPages === 0) ? 0.5 : 1, transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            >
+              Next →
+            </button>
+          </div>
+          <div style={{ fontSize: '0.85rem', letterSpacing: '0.05em', color: '#888', fontWeight: 500, backgroundColor: '#f9f9f9', padding: '6px 16px', borderRadius: '20px', border: '1px solid #f0f0f0' }}>
+            {pageInfo}
+          </div>
         </div>
         <div style={{ textAlign: 'center', marginTop: 10, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{statusText}</div>
         <div className="hint">
