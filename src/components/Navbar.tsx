@@ -11,8 +11,9 @@ import { signOutAction } from '@/app/actions/auth'
 const getImageUrl = (path: string | null, version?: string) => {
   if (!path) return null;
   if (path.startsWith('http') || path.startsWith('https')) return path;
-  const baseUrl = "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/customers"; 
-  const fullUrl = `${baseUrl}/${path}`;
+  const baseUrl = "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public";
+  const cleanPath = path.replace(/^\/+/, "");
+  const fullUrl = `${baseUrl}/${cleanPath}`;
   if (version) {
       return `${fullUrl}?v=${new Date(version).getTime()}`;
   }
@@ -131,7 +132,7 @@ export default function Navbar() {
     : 'bg-transparent border-transparent py-6';
 
   const UserAvatar = () => {
-    const avatarUrl = getImageUrl(user?.avatar_url, user?.updated_at);
+    const avatarUrl = getImageUrl(user?.avatar_url, user?.created_at);
     const avatarBorder = isThemeDark ? 'border-zinc-300 hover:border-[#d4a373]' : 'border-white/50 hover:border-white';
     
     return (

@@ -1,5 +1,5 @@
 'use client'
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { STATUS_TABS, HEADERS, PRODUCT_TYPES } from '../config';
 import { FilterState } from '../../actions/product';
 
@@ -32,6 +32,24 @@ export default function FilterBar({
   rangePresets,
   handleRangeApply
 }: FilterBarProps) {
+
+  const barRef = useRef<HTMLDivElement>(null)
+  const [scrolledEnd, setScrolledEnd] = useState(false)
+
+  useEffect(() => {
+    const el = barRef.current
+    if (!el) return
+    const check = () => {
+      setScrolledEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 4)
+    }
+    check()
+    el.addEventListener('scroll', check, { passive: true })
+    window.addEventListener('resize', check)
+    return () => {
+      el.removeEventListener('scroll', check)
+      window.removeEventListener('resize', check)
+    }
+  }, [])
 
   // ---- helpers ----
   const getChip = (key: string) => {
@@ -225,11 +243,15 @@ export default function FilterBar({
         .fb-tray {
           margin-top: 16px;
           border: 1px solid var(--line);
-          border-radius: 6px;
-          background: var(--bg);
-          padding: 28px 32px 24px;
+          border-radius: 10px;
+          background: #faf8f5;
+          padding: 28px 32px 26px;
           position: relative;
           animation: fb-slide 0.22s ease;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        }
+        [data-theme="dark"] .fb-tray {
+          background: #1a1816;
         }
         @keyframes fb-slide {
           from { opacity: 0; transform: translateY(-6px); }
@@ -238,16 +260,17 @@ export default function FilterBar({
         .fb-tray-title {
           font-family: var(--font-serif);
           font-style: italic;
-          font-size: 1.1rem;
+          font-size: 0.8rem;
           font-weight: 400;
           color: var(--text-muted);
-          margin-bottom: 20px;
-          letter-spacing: 0.5px;
+          margin-bottom: 18px;
+          letter-spacing: 3px;
+          text-transform: uppercase;
         }
         .fb-tray-options {
           display: flex;
           flex-wrap: wrap;
-          gap: 10px;
+          gap: 8px;
         }
 
         /* ── Option chips inside tray ── */
@@ -255,25 +278,32 @@ export default function FilterBar({
           background: transparent;
           border: 1px solid var(--line);
           color: var(--text-muted);
-          padding: 7px 18px;
-          border-radius: 4px;
-          font-size: 0.8rem;
-          letter-spacing: 0.8px;
-          text-transform: uppercase;
+          padding: 8px 20px;
+          border-radius: 999px;
+          font-size: 0.78rem;
+          letter-spacing: 0.5px;
+          font-weight: 400;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.2s ease;
           font-family: var(--font-sans);
+          position: relative;
+          overflow: hidden;
         }
         .fb-opt:hover {
-          border-color: var(--text-main);
+          border-color: var(--accent);
           color: var(--text-main);
-          background: var(--btn-hover);
+          background: transparent;
         }
         .fb-opt.active {
-          background: var(--text-main);
-          border-color: var(--text-main);
-          color: var(--bg);
-          font-weight: 500;
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #fff;
+          font-weight: 600;
+          box-shadow: 0 4px 12px rgba(197,160,89,0.35);
+          letter-spacing: 0.6px;
+        }
+        [data-theme="dark"] .fb-opt.active {
+          box-shadow: 0 4px 12px rgba(212,175,55,0.25);
         }
 
         /* ── Range inputs ── */
@@ -375,7 +405,49 @@ export default function FilterBar({
           .fb-tray { padding: 20px 16px 18px; }
           .fb-label { display: none; }
           .fb-divider { display: none; }
-          .fb-search { min-width: 140px; }
+
+          /* wrapper สำหรับ fade effect */
+          .fb-bar-wrap {
+            position: relative;
+          }
+          .fb-bar-wrap::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 48px;
+            height: 100%;
+            background: linear-gradient(to right, transparent, var(--bg));
+            pointer-events: none;
+            z-index: 1;
+            transition: opacity 0.2s;
+          }
+          .fb-bar-wrap.scrolled-end::after {
+            opacity: 0;
+          }
+
+          /* Pills scroll แนวนอน แถวเดียว */
+          .fb-bar {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 4px;
+            gap: 6px;
+          }
+          .fb-bar::-webkit-scrollbar { display: none; }
+
+          /* Search แยกลงแถวใหม่ */
+          .fb-search {
+            order: 999;
+            flex: 0 0 100%;
+            min-width: unset;
+            margin-left: 0;
+            margin-top: 10px;
+          }
+
+          .fb-pill { flex-shrink: 0; }
+          .fb-clear { flex-shrink: 0; }
         }
       `}</style>
 
@@ -400,7 +472,8 @@ export default function FilterBar({
         </div>
 
         {/* ── Filter bar ── */}
-        <div className="fb-bar">
+        <div className={`fb-bar-wrap${scrolledEnd ? ' scrolled-end' : ''}`}>
+        <div className="fb-bar" ref={barRef}>
           <span className="fb-label">Filter</span>
           <div className="fb-divider" />
 
@@ -438,6 +511,7 @@ export default function FilterBar({
               suppressHydrationWarning
             />
           </div>
+        </div>
         </div>
 
         {/* ── Expanded tray ── */}

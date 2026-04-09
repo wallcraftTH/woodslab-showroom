@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '@/src/components/Navbar'
-import { getMyFavorites, toggleProductLike } from '@/app/actions/product'
+import { getMyFavorites, toggleProductLike, getActiveDiscounts } from '@/app/actions/product'
 import { useRouter } from 'next/navigation'
 
 // --- CONSTANTS & UTILS ---
@@ -24,6 +24,37 @@ const currency = (n: any) =>
 const getSizeText = (specs: any) => {
   if (!specs || typeof specs !== "object") return ""
   return specs.size_text || specs.size || specs.dimension || ""
+}
+
+const getDiscountInfo = (prod: any, discounts: any[]) => {
+  if (!prod?.price || discounts.length === 0) return null
+  const price = parseFloat(prod.price)
+  const now = new Date()
+  const active = discounts.filter(d => {
+    if (d.start_date && new Date(d.start_date) > now) return false
+    if (d.end_date && new Date(d.end_date) < now) return false
+    return true
+  })
+  const matching = active.filter(d => {
+    const rules = d.discount_rules || []
+    if (rules.length === 0) return true
+    return rules.some((r: any) => {
+      if (r.product_id && String(r.product_id) !== String(prod.id)) return false
+      if (price < parseFloat(r.min_subtotal || 0)) return false
+      return true
+    })
+  })
+  if (matching.length === 0) return null
+  let best: any = null, maxSave = 0
+  matching.forEach(d => {
+    let save = 0
+    const val = parseFloat(d.value)
+    if (d.discount_type === 'PERCENT') save = price * (val / 100)
+    else save = val
+    if (save > price) save = price
+    if (save > maxSave) { maxSave = save; best = { ...d, saving: save, newPrice: Math.max(0, price - save) } }
+  })
+  return best
 }
 
 // --- COMPONENTS ---
@@ -58,15 +89,17 @@ const LoadingSkeleton = () => (
 export default function FavoritesPage() {
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  
+  const [activeDiscounts, setActiveDiscounts] = useState<any[]>([])
+
   // เปลี่ยนจาก removingIds เป็น unlikedIds เพื่อแทร็กว่าอันไหน "ถูกกดเอาออก" ในเซสชั่นนี้
   const [unlikedIds, setUnlikedIds] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     const fetchFavs = async () => {
       try {
-        const data = await getMyFavorites()
+        const [data, discounts] = await Promise.all([getMyFavorites(), getActiveDiscounts()])
         setProducts(data)
+        setActiveDiscounts(discounts)
       } catch (err) {
         console.error(err)
       } finally {
@@ -161,7 +194,8 @@ export default function FavoritesPage() {
             {products.map((p) => {
               const imgUrl = normalizeImg(p.image_url || p.specs?.main_image?.url)
               const size = getSizeText(p.specs)
-              
+              const discountInfo = getDiscountInfo(p, activeDiscounts)
+
               // ✅ ตรวจสอบว่าสินค้าชิ้นนี้ถูกกด Unliked ใน session นี้หรือไม่
               const isUnliked = unlikedIds.has(p.id)
 
@@ -211,7 +245,15 @@ export default function FavoritesPage() {
                       {size || p.sku}
                     </p>
                     <div className="text-sm font-medium text-[#1C1917]">
-                      {currency(p.price)}
+                      {discountInfo ? (
+                        <span className="flex items-center justify-center gap-2 flex-wrap">
+                          <span className="line-through text-zinc-400 text-xs">{currency(p.price)}</span>
+                          <span className="text-rose-600 font-semibold">{currency(discountInfo.newPrice)}</span>
+                          <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                            -{discountInfo.discount_type === 'PERCENT' ? parseFloat(discountInfo.value) + '%' : currency(discountInfo.saving)}
+                          </span>
+                        </span>
+                      ) : currency(p.price)}
                     </div>
                   </div>
                 </div>

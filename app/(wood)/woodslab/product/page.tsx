@@ -240,9 +240,12 @@ function ProductContent() {
     const HIDE = ["images", "gallery", "main_image", "description", "pending"]
     const LABELS: any = { size:"Size", size_text:"Size", dimensions:"Dimensions", material:"Material", wood_type:"Material", finish:"Finish", grade:"Grade", origin:"Origin", panel_design:"Panel Design", panel_craft:"Panel Craft", edge_design:"Edge Design", color_craft:"Color Craft", texture_craft:"Texture Craft", brightness:"Brightness", weight:"Weight", spec_type:"Type", type:"Type" }
 
+    const seenLabels = new Set<string>()
     Object.entries(s).forEach(([k, v]) => {
       if (HIDE.includes(k) || v === null || v === "") return
       const label = LABELS[k] || k.replace(/_/g, " ").replace(/\b\w/g, m => m.toUpperCase())
+      if (seenLabels.has(label)) return
+      seenLabels.add(label)
       const valDisplay = Array.isArray(v) ? v.join(", ") : String(v)
       rows.push({ label, value: valDisplay })
     })
@@ -457,24 +460,23 @@ const maxStock = getStockQty(product)
         .thumb img { width: 100%; height: 100%; object-fit: cover; }
 
         /* DETAILS SECTION */
-        .details { width: 100%; }
-        .p-sku { font-size: 0.85rem; color: #999; letter-spacing: 1px; margin-bottom: 8px; }
+        .details { width: 100%; font-family: 'Playfair Display', serif; }
+        .p-sku { font-size: 0.85rem; color: #999; letter-spacing: 2px; margin-bottom: 8px; font-family: 'Playfair Display', serif; font-style: italic; }
         .p-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
-        .p-title-main { margin: 0; font-size: 1.8rem; line-height: 1.3; font-weight: 700; color: #333; }
-        
-        .like-btn-wrap { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 48px; }
-        .like-count { font-size: 0.8rem; margin-top: 4px; color: #666; font-weight: 500; }
-        .like-btn-wrap:hover .like-count { color: #000; }
-        .like-btn-wrap:active { transform: scale(0.95); }
+        .p-title-main { margin: 0; font-size: 2rem; line-height: 1.3; font-weight: 600; color: #1a1a1a; font-family: 'Playfair Display', serif; }
 
-        .spec-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 0.95rem; }
+        .like-btn-wrap { display: flex; align-items: center; cursor: pointer; min-width: 48px; padding: 8px; border-radius: 50%; transition: background 0.2s; }
+        .like-btn-wrap:hover { background: #fff0f0; }
+        .like-btn-wrap:active { transform: scale(0.9); }
+
+        .spec-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 0.95rem; font-family: 'Playfair Display', serif; }
         .spec-table tr { border-bottom: 1px solid #eee; }
         .spec-table td { padding: 12px 0; }
-        .spec-label { width: 40%; color: #666; font-weight: 500; }
-        .spec-value { width: 60%; color: #000; font-weight: 600; text-align: right; }
+        .spec-label { width: 40%; color: #888; font-weight: 400; font-style: italic; }
+        .spec-value { width: 60%; color: #1a1a1a; font-weight: 600; text-align: right; }
 
         .price-block { margin-bottom: 25px; border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 20px 0; }
-        .price { font-size: 1.6rem; font-weight: 700; color: #000; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .price { font-size: 1.8rem; font-weight: 500; color: #1a1a1a; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-family: 'Playfair Display', serif; }
         .price-old { font-size: 1rem; color: #999; text-decoration: line-through; font-weight: 400; }
         .price-new { color: #e74c3c; }
         .badge-discount { background: #e74c3c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
@@ -624,7 +626,6 @@ const maxStock = getStockQty(product)
                 <h1 className="p-title-main">{product.name || "ติดต่อสอบถาม"}</h1>
                 <div className="like-btn-wrap" onClick={handleToggleLike} title={isLiked ? "Unlike" : "Like"}>
                     <HeartIcon filled={isLiked} />
-                    <span className="like-count">{likeCount > 0 ? likeCount : "Like"}</span>
                 </div>
             </div>
   

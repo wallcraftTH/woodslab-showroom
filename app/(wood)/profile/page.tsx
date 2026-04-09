@@ -30,9 +30,9 @@ export default async function ProfilePage() {
   )
 
   const { data: customer } = await supabase
-    .from('customers')
+    .from('profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('user_id', user.id)
     .single()
 
   return (

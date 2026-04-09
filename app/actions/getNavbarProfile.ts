@@ -37,9 +37,9 @@ export async function getNavbarProfile() {
 
     // 4. Token ใช้ได้จริง -> ดึงข้อมูล Profile
     const { data: customer, error } = await supabase
-      .from('customers')
-      .select('full_name, avatar_url, updated_at')
-      .eq('id', user.id)
+      .from('profiles')
+      .select('full_name, avatar_url, created_at')
+      .eq('user_id', user.id)
       .single()
 
     if (error) {
@@ -47,7 +47,7 @@ export async function getNavbarProfile() {
       return {
         full_name: user.user_metadata?.full_name || user.email,
         avatar_url: user.user_metadata?.avatar_url,
-        updated_at: null
+        created_at: null
       }
     }
 

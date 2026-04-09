@@ -27,33 +27,32 @@ export async function updateProfile(prevState: any, formData: FormData) {
   let avatarUrl = null
 
   if (avatarFile && avatarFile.size > 0) {
-    const safeName = avatarFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '')
-    const filePath = `profiles/${user.id}/${Date.now()}_${safeName}` // ใส่ Timestamp กัน Cache
+    const fileName = `${user.id}-${Date.now()}.webp`
+    const filePath = `profiles/${fileName}`
 
-    const { error: uploadError } = await supabase 
+    const { error: uploadError } = await supabase
       .storage
-      .from('customers')
-      .upload(filePath, avatarFile, { 
+      .from('profiles')
+      .upload(fileName, avatarFile, {
         contentType: 'image/webp',
-        upsert: true 
+        upsert: true
       })
 
     if (uploadError) return { error: 'Upload failed', success: false }
-    avatarUrl = filePath 
+    avatarUrl = filePath
   }
 
   const updateData: any = {
     full_name: fullName,
     phone: phone,
-    updated_at: new Date().toISOString(),
   }
 
   if (avatarUrl) updateData.avatar_url = avatarUrl
 
   const { error } = await supabase
-    .from('customers')
+    .from('profiles')
     .update(updateData)
-    .eq('id', user.id)
+    .eq('user_id', user.id)
 
   if (error) return { error: 'Update failed', success: false }
 
