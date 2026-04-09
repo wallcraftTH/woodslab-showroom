@@ -469,11 +469,29 @@ const maxStock = getStockQty(product)
         .like-btn-wrap:hover { background: #fff0f0; }
         .like-btn-wrap:active { transform: scale(0.9); }
 
-        .spec-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 0.95rem; font-family: 'Playfair Display', serif; }
-        .spec-table tr { border-bottom: 1px solid #eee; }
-        .spec-table td { padding: 12px 0; }
-        .spec-label { width: 40%; color: #888; font-weight: 400; font-style: italic; }
-        .spec-value { width: 60%; color: #1a1a1a; font-weight: 600; text-align: right; }
+        .spec-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+        .spec-table tr { border-bottom: 1px solid #ebebeb; }
+        .spec-table td { padding: 14px 0; vertical-align: middle; }
+        .details .spec-label {
+          width: 40%;
+          color: #aaa !important;
+          font-weight: 400;
+          font-style: italic;
+          font-size: 0.82rem;
+          letter-spacing: 0.04em;
+          font-family: 'Playfair Display', serif;
+        }
+        .details .spec-value {
+          width: 60%;
+          color: #1a1a1a !important;
+          font-weight: 500;
+          font-size: 0.85rem;
+          letter-spacing: 0.12em;
+          text-align: right;
+          text-transform: uppercase;
+          font-family: 'Prompt', sans-serif;
+          font-variant-numeric: lining-nums tabular-nums;
+        }
 
         .price-block { margin-bottom: 25px; border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 20px 0; }
         .price { font-size: 1.8rem; font-weight: 500; color: #1a1a1a; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-family: 'Playfair Display', serif; }
@@ -632,9 +650,25 @@ const maxStock = getStockQty(product)
             <table className="spec-table">
               <tbody>
                 {specList.map((r: any, idx: number) => (
-                  <tr key={idx}>
-                    <td className="spec-label">{r.label}</td>
-                    <td className="spec-value" style={{color: r.color || 'inherit'}}>{r.value}</td>
+                  <tr key={idx} style={{ borderBottom: '1px solid #e8e8e8' }}>
+                    <td style={{
+                      padding: '13px 0',
+                      width: '40%',
+                      fontFamily: "'Playfair Display', serif",
+                      fontStyle: 'italic',
+                      fontWeight: 400,
+                      fontSize: '0.85rem',
+                      color: '#999',
+                    }}>{r.label}</td>
+                    <td style={{
+                      padding: '13px 0',
+                      width: '60%',
+                      textAlign: 'right',
+                      fontFamily: "'Playfair Display', serif",
+                      fontWeight: 400,
+                      fontSize: '0.85rem',
+                      color: r.color || '#2c2c2c',
+                    }}>{r.value}</td>
                   </tr>
                 ))}
               </tbody>
@@ -689,7 +723,7 @@ const maxStock = getStockQty(product)
                 {processing ? "Processing..." : "Add to Cart"}
               </button>
               <button className="btn" onClick={handleDeposit} disabled={!meta.canBuy || processing}>
-                Book / Deposit (100฿)
+                Book / Deposit 
               </button>
             </div>
   
