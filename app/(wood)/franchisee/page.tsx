@@ -3,257 +3,344 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
-// --- Animation Helper ---
-const FadeInSection = ({ children, className }: { children: React.ReactNode, className?: string }) => {
-  const [isVisible, setVisible] = useState(false);
-  const domRef = useRef<HTMLDivElement>(null);
-
+/* ─── FadeIn helper ─── */
+const FadeIn = ({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) => {
+  const [v, setV] = useState(false);
+  const r = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => setVisible(entry.isIntersecting));
-    }, { threshold: 0.1 });
-    if (domRef.current) observer.observe(domRef.current);
-    return () => observer.disconnect();
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setV(true); }, { threshold: 0.08 });
+    if (r.current) obs.observe(r.current);
+    return () => obs.disconnect();
   }, []);
-
   return (
-    <div
-      ref={domRef}
-      className={`transition-all duration-1000 ease-out transform ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'
-      } ${className}`}
-    >
+    <div ref={r} style={{ transitionDelay: `${delay}ms` }}
+      className={`transition-all duration-[1100ms] ease-out ${v ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'} ${className}`}>
       {children}
     </div>
   );
 };
 
+const Tag = ({ text }: { text: string }) => (
+  <p className="text-[#C8935A] text-[9px] font-bold uppercase tracking-[0.5em] mb-5">{text}</p>
+);
+
+/* ─── Data ─── */
+const HERO_IMGS = [
+  "https://pub-258bd10e7e8c4a7690a74c54cfbdef93.r2.dev/original/1775730179631-744.webp",
+  "https://pub-258bd10e7e8c4a7690a74c54cfbdef93.r2.dev/original/1775730215191-964.webp",
+  "https://pub-258bd10e7e8c4a7690a74c54cfbdef93.r2.dev/original/1775724626723-645.webp",
+  "https://pub-258bd10e7e8c4a7690a74c54cfbdef93.r2.dev/original/1775724638171-371.webp",
+];
+
+const ADVANTAGES = [
+  {
+    tag: "01 — Material",
+    title: "คัดสรรวัตถุดิบ",
+    titleEn: "Premium Material Selection",
+    desc: "ทีมจัดหาวัตถุดิบระดับโลกของเราสำรวจป่าที่ยั่งยืนทั่วโลกอย่างสม่ำเสมอ มุ่งค้นหาซุงอายุร้อยปีที่มีลายเนื้อไม้เฉพาะตัว เราเลือกเฉพาะไม้ที่มีรูปทรงธรรมชาติอันหาได้ยาก เพื่อสร้างไม้แผ่นระดับโลกอย่างแท้จริง",
+    img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/f473ea3dcaf601f3c6ee4b6b75e505b0-l896u.webp",
+    reverse: false,
+  },
+  {
+    tag: "02 — Design",
+    title: "ปรัชญาการออกแบบ",
+    titleEn: "Design Philosophy",
+    desc: "ทีมนักออกแบบของเราเข้าใจลึกซึ้งถึงคุณลักษณะและความงามของไม้แต่ละชนิด พร้อมผสมผสานแนวคิดเฟอร์นิเจอร์ร่วมสมัยเข้ากับธรรมชาติของไม้ สร้างสไตล์ขอบ 14 แบบและแบบผิว 17 แบบ เพื่อให้ลูกค้าเลือกและปรับแต่งได้อย่างอิสระ",
+    img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/68472cc7da4659be15da224c8a898827-7v52j.webp",
+    reverse: true,
+  },
+  {
+    tag: "03 — Craftsmanship",
+    title: "ช่างฝีมือระดับมาสเตอร์",
+    titleEn: "Master Craftsmanship",
+    desc: "ทีมช่างเทคนิคมืออาชีพของเราเชี่ยวชาญงานไม้แผ่นเนื้อแข็งโดยเฉพาะ กระบวนการทุกขั้นตอนถูกออกแบบให้ไม่กระทบต่อความเสถียรโดยธรรมชาติของไม้ พร้อมมอบตัวเลือกสี 18 เฉดและเนื้อผิว 9 แบบ",
+    img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/5d3bdeb73b39b3dd05fd75c9e80711e9-qqox1.webp",
+    reverse: false,
+  },
+  {
+    tag: "04 — Technology",
+    title: "เทคโนโลยีระดับนำ",
+    titleEn: "Advanced Technology",
+    desc: "ด้วยการสนับสนุนจากเทคโนโลยีชั้นนำระดับโลก เราใช้เครื่องอบแห้งความถี่สูงนำเข้าจากญี่ปุ่น และเครื่องปรับระดับไม้ขนาดใหญ่ ทีมช่างไม้ผู้มีประสบการณ์กว่า 15 ปีดูแลทุกขั้นตอนการผลิต",
+    img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/a8bceb7a237a54537e38cc24da55a6c4-ie2cd.webp",
+    reverse: true,
+  },
+  {
+    tag: "05 — Eco",
+    title: "รับผิดชอบต่อสิ่งแวดล้อม",
+    titleEn: "Eco-Responsibility",
+    desc: "เราควบคุมทุกรายละเอียดด้านความยั่งยืนอย่างพิถีพิถัน ตั้งแต่การคัดเลือกวัตถุดิบ วัสดุเรซิน กาว จนถึงสีเคลือบผิว ทุกอย่างผ่านการตรวจสอบให้ปลอดภัย เป็นมิตรกับสิ่งแวดล้อม และทนทานสูง",
+    img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/e9baa1b8ae605818af42473d388bf0eb-xwcek.webp",
+    reverse: false,
+  },
+  {
+    tag: "06 — Collection",
+    title: "คอลเลกชันพิเศษเฉพาะ",
+    titleEn: "Exclusive Collection",
+    desc: "คลังสินค้ามากกว่า 10,000 แผ่นที่อบแห้งตามธรรมชาติ และอีกกว่า 1,500 แผ่นระดับพรีเมียม ครอบคลุมพันธุ์ไม้หายากกว่า 40 ชนิดจากยุโรป อเมริกาเหนือ อเมริกาใต้ แอฟริกา และเอเชียตะวันออกเฉียงใต้",
+    img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/8ddac0c25fa633cb6bbdfcb4a031254c-0arvm.webp",
+    reverse: true,
+  },
+];
+
+const SERVICES = [
+  { n: "01", th: "ระบบสินค้าร่วม", en: "Shared Product System", desc: "เข้าถึงไม้แผ่นดิบกว่า 10,000 ชิ้น ไม้แผ่นสำเร็จ 1,500+ ชิ้น และเฟอร์นิเจอร์งานฝีมือ" },
+  { n: "02", th: "ราคาเดียวกันทั่วประเทศ", en: "Unified Pricing", desc: "ราคาขายปลีกที่สม่ำเสมอทั้งออนไลน์และออฟไลน์ ปกป้องความน่าเชื่อถือของตัวแทน" },
+  { n: "03", th: "การคุ้มครองพื้นที่", en: "Regional Protection", desc: "สิทธิ์ตัวแทนพิเศษเฉพาะพื้นที่ที่กำหนด เพื่อความเสถียรของตลาด" },
+  { n: "04", th: "บริการครบวงจร", en: "One-Stop Service", desc: "ตั้งแต่การเลือกทำเล ออกแบบร้าน ไปจนถึงกลยุทธ์การจัดแสดงสินค้า" },
+  { n: "05", th: "โซลูชันปรับแต่งได้", en: "Custom Solutions", desc: "ออกแบบรูปแบบร้านค้าที่เหมาะสมกับแต่ละแบรนด์ เพื่อประสบการณ์การช็อปปิ้งที่ดียิ่งขึ้น" },
+  { n: "06", th: "ฝึกอบรมจากผู้เชี่ยวชาญ", en: "Expert Training", desc: "การฝึกอบรมครบถ้วนด้านความรู้แบรนด์ รายละเอียดสินค้า และมาตรฐานการให้บริการ" },
+  { n: "07", th: "สนับสนุนการดำเนินงาน", en: "Operational Support", desc: "แผนดำเนินงานเชิงกลยุทธ์ที่เชื่อมโยงระบบออนไลน์และออฟไลน์เข้าด้วยกัน" },
+];
+
+const STEPS = [
+  { n: "01", th: "ปรึกษาหารือ", en: "Consultation" },
+  { n: "02", th: "ตอบคำถาม", en: "Q&A Session" },
+  { n: "03", th: "ศึกษาข้อมูล", en: "Research" },
+  { n: "04", th: "แสดงเจตจำนง", en: "Intent" },
+  { n: "05", th: "ลงนามสัญญา", en: "Agreement" },
+  { n: "06", th: "เริ่มความร่วมมือ", en: "Cooperation" },
+];
+
 export default function FranchiseePage() {
-  // --- Slideshow Logic ---
-  const heroImages = [
-    "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/fabad5b938cce52b88d5345aa768ecfb-nabga.webp",
-    "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/d7d74b86ce37455e1096f2b226ed3afe-wtlxd.webp",
-    "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/9bafb334fd20b209ade54f7ee75b489a-zd554.webp"
-  ];
-
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
+  const [hi, setHi] = useState(0);
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
-    }, 5000); // เปลี่ยนรูปทุกๆ 5 วินาที
-    return () => clearInterval(timer);
-  }, [heroImages.length]);
-
-  const advantages = [
-    {
-      title: "Material Selection",
-      desc: "We boast a high-quality procurement team that regularly visits sustainable forests worldwide for professional material selection. We prioritize century-old trees with minimal heartwood cracking and unique natural shapes. We use world-class wood to create world-class slabs.",
-      img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/f473ea3dcaf601f3c6ee4b6b75e505b0-l896u.webp",
-      reverse: false
-    },
-    {
-      title: "Design Philosophy",
-      desc: "Our design team deeply understands the characteristics and beauty of wood. While preserving natural traits, we incorporate modern furniture design concepts, creating 14 creative edge styles and 17 inspired surface designs. Users can freely choose and customize.",
-      img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/68472cc7da4659be15da224c8a898827-7v52j.webp",
-      reverse: true
-    },
-    {
-      title: "Master Craftsmanship",
-      desc: "Equipped with a professional technical team, we specialize in solid wood slab craftsmanship. We ensure that our processes do not compromise the wood's inherent stability while creating 18 surface colors and 9 surface textures.",
-      img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/5d3bdeb73b39b3dd05fd75c9e80711e9-qqox1.webp",
-      reverse: false
-    },
-    {
-      title: "Advanced Technology",
-      desc: "Supported by globally leading technology, we utilize imported Japanese high-frequency drying equipment and large-scale wood leveling machines. Our woodworking team with 15 years of experience safeguards every step of production.",
-      img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/a8bceb7a237a54537e38cc24da55a6c4-ie2cd.webp",
-      reverse: true
-    },
-    {
-      title: "Eco-Responsibility",
-      desc: "As advocates of proactive ecology, we meticulously control every detail of environmental sustainability, from raw wood selection and resin materials to adhesives and surface coatings. We ensure safety, eco-friendliness, and durability.",
-      img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/e9baa1b8ae605818af42473d388bf0eb-xwcek.webp",
-      reverse: false
-    },
-    {
-      title: "Exclusive Collection",
-      desc: "With a collection of over 10,000 air-dried slabs and 1,500+ premium slabs in stock, we offer more than 40 rare wood species from Europe, North America, South America, Africa, and Southeast Asia.",
-      img: "https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/8ddac0c25fa633cb6bbdfcb4a031254c-0arvm.webp",
-      reverse: true
-    }
-  ];
-
-  const services = [
-    { title: 'Shared Product System', desc: 'Access to 10,000+ raw slabs, 1,500+ finished slabs, and handmade furniture.' },
-    { title: 'Unified Pricing', desc: 'Consistent retail pricing across online and offline channels to protect dealer integrity.' },
-    { title: 'Regional Protection', desc: 'Exclusive agency rights within designated areas to ensure market stability.' },
-    { title: 'One-Stop Service', desc: 'From location selection and store design to product display strategies.' },
-    { title: 'Custom Solutions', desc: 'Tailored store style solutions to enhance the customer shopping experience.' },
-    { title: 'Expert Training', desc: 'Comprehensive training on brand knowledge, product details, and service standards.' },
-    { title: 'Operational Support', desc: 'Strategic operational plans connecting online and offline ecosystems.' },
-  ];
-
-  const steps = [
-    { num: '01', title: 'Consultation' },
-    { num: '02', title: 'Q&A Session' },
-    { num: '03', title: 'Research' },
-    { num: '04', title: 'Intent' },
-    { num: '05', title: 'Agreement' },
-    { num: '06', title: 'Cooperation' },
-  ];
+    const t = setInterval(() => setHi(i => (i + 1) % HERO_IMGS.length), 5000);
+    return () => clearInterval(t);
+  }, []);
 
   return (
-    <div className="bg-[#FAF9F6] text-[#1C1917] font-sans selection:bg-[#d4a373] selection:text-white min-h-screen flex flex-col">
-      
-      {/* 1. Hero Image Slideshow */}
-      <section className="relative w-full h-[60vh] md:h-[80vh] bg-black overflow-hidden">
-        {heroImages.map((src, index) => (
-          <div
-            key={src}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-              index === currentImageIndex ? 'opacity-60' : 'opacity-0'
-            }`}
-          >
-            <img 
-              src={src} 
-              alt={`Partner Slide ${index}`} 
-              className="w-full h-full object-cover"
-            />
-          </div>
+    <div className="bg-[#F7F4EF] text-[#1C1917] font-sans selection:bg-[#C8935A] selection:text-white min-h-screen">
+
+      {/* ══ HERO ══ */}
+      <section className="relative w-full h-[75vh] md:h-screen overflow-hidden bg-[#0d0b09]">
+        {HERO_IMGS.map((src, i) => (
+          <img key={i} src={src} alt=""
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ease-in-out ${i === hi ? 'opacity-60' : 'opacity-0'}`}
+            style={{ backfaceVisibility: 'hidden', transform: 'translateZ(0)' }}
+          />
         ))}
-        
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/60 flex items-center justify-center">
-            <FadeInSection>
-                <h1 className="text-white text-5xl md:text-7xl font-serif tracking-widest uppercase opacity-90 drop-shadow-2xl text-center px-4">
-                    Partner With Us
-                </h1>
-                <p className="text-white/80 text-center mt-6 text-xs md:text-sm uppercase tracking-[0.3em] font-light">
-                    Join the legacy of crafting nature
-                </p>
-            </FadeInSection>
+        {/* 2-layer gradient — แสงมาจากขวา เหมือนหน้าหลัก */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+          <FadeIn>
+            <p className="text-[#C8935A] text-[9px] uppercase tracking-[0.6em] mb-6 font-medium">BY WOODDEN™ — Franchise Program</p>
+            <p className="text-white/55 text-xs md:text-sm uppercase tracking-[0.4em] font-light">
+              Partner With Us — Crafting Nature's Legacy Together
+            </p>
+          </FadeIn>
+        </div>
+
+        {/* dot nav */}
+        <div className="absolute bottom-7 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          {HERO_IMGS.map((_, i) => (
+            <button key={i} onClick={() => setHi(i)}
+              className={`rounded-full transition-all duration-500 ${i === hi ? 'bg-[#C8935A] w-7 h-1.5' : 'bg-white/30 w-1.5 h-1.5'}`} />
+          ))}
+        </div>
+
+        {/* scroll hint */}
+        <div className="absolute bottom-7 right-8 flex flex-col items-center gap-2 opacity-40">
+          <div className="w-[1px] h-14 bg-white animate-pulse" />
+          <span className="text-white text-[8px] uppercase tracking-[0.3em] rotate-90 mt-2">Scroll</span>
         </div>
       </section>
 
-      {/* 2. Brand Advantage */}
-      <section className="py-24 md:py-32 bg-[#FAF9F6]">
-         <div className="text-center mb-24">
-             <span className="text-[#d4a373] text-[10px] font-bold uppercase tracking-[0.3em] block mb-4">Why Choose Us</span>
-             <h2 className="text-4xl md:text-5xl font-serif text-[#1C1917]">Brand Advantages</h2>
-         </div>
-         
-         <div className="space-y-0">
-            {advantages.map((item, idx) => (
-               <div key={idx} className={`flex flex-col md:flex-row ${item.reverse ? 'md:flex-row-reverse' : ''} bg-white group`}>
-                  <div className="w-full md:w-1/2 h-[400px] md:h-[600px] overflow-hidden relative">
-                     <img 
-                       src={item.img} 
-                       alt={item.title} 
-                       className="w-full h-full object-cover transition-transform duration-[2s] ease-in-out group-hover:scale-110" 
-                     />
-                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-700"></div>
-                  </div>
-                  <div className={`w-full md:w-1/2 p-10 md:p-24 flex flex-col justify-center ${idx % 2 === 0 ? 'bg-[#FAF9F6]' : 'bg-white'}`}>
-                     <FadeInSection>
-                        <span className="text-[#d4a373] text-[10px] font-bold uppercase tracking-[0.3em] mb-4 block">
-                           0{idx + 1}
-                        </span>
-                        <h3 className="text-3xl md:text-4xl font-serif text-[#1C1917] mb-6">{item.title}</h3>
-                        <p className="text-zinc-500 font-light leading-loose text-sm md:text-base text-justify">
-                           {item.desc}
-                        </p>
-                     </FadeInSection>
-                  </div>
-               </div>
-            ))}
-         </div>
+      {/* ══ OPENING ══ */}
+      <section className="py-32 px-6 bg-[#F7F4EF]">
+        <FadeIn className="max-w-4xl mx-auto text-center">
+          <Tag text="Why Partner With Us" />
+          <h2 className="font-serif text-[#1C1917] leading-snug mb-8"
+            style={{ fontSize: 'clamp(1.6rem, 3.5vw, 3.5rem)' }}>
+            "เติบโตไปพร้อมกับเรา<br className="hidden md:block" />
+            <span className="italic text-zinc-400 font-light"> ภายใต้แบรนด์ที่ตลาดเชื่อถือ"</span>
+          </h2>
+          <p className="text-zinc-500 font-light leading-loose text-sm md:text-lg max-w-2xl mx-auto">
+            WOODSLABS เปิดโอกาสให้นักลงทุนและผู้ประกอบการที่มีวิสัยทัศน์ร่วมขยายแบรนด์ระดับโลก
+            พร้อมระบบสนับสนุนที่ครอบคลุมทุกมิติ ตั้งแต่วันแรกจนถึงวันที่คุณเติบโตอย่างยั่งยืน
+          </p>
+          <div className="w-12 h-[1px] bg-[#C8935A] my-10 opacity-60 mx-auto" />
+          <p className="text-[#C8935A] text-sm font-serif italic">
+            "สร้างพื้นที่ที่กลมกลืนระหว่างคนและธรรมชาติ"
+          </p>
+        </FadeIn>
       </section>
 
-      {/* 3. Exclusive Services */}
-      <section className="py-32 px-6 bg-[#111] text-[#DCD3C8]">
-         <div className="max-w-6xl mx-auto">
-            <FadeInSection>
-                <div className="text-center mb-24">
-                    <span className="text-[#d4a373] text-[10px] font-bold uppercase tracking-[0.3em] block mb-4">Support System</span>
-                    <h2 className="text-4xl md:text-5xl font-serif text-white">Exclusive Services</h2>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16">
-                   {services.map((s, idx) => (
-                      <div key={idx} className="group p-8 border border-white/5 hover:border-[#d4a373]/30 transition-colors duration-500 bg-white/[0.02]">
-                         <h4 className="text-xl font-serif text-white mb-4 group-hover:text-[#d4a373] transition-colors">{s.title}</h4>
-                         <p className="text-zinc-500 font-light text-sm leading-relaxed group-hover:text-zinc-400 transition-colors">{s.desc}</p>
-                      </div>
-                   ))}
-                </div>
-            </FadeInSection>
-         </div>
-      </section>
-
-      {/* 4. Investment & Growth */}
-      <section className="relative py-40 px-6 bg-fixed bg-cover bg-center" style={{ backgroundImage: 'url("https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/joinshop7-l6un4.webp")' }}>
-         <div className="absolute inset-0 bg-black/70"></div>
-         <div className="relative z-10 max-w-4xl mx-auto text-center text-white">
-            <FadeInSection>
-                <span className="text-[#d4a373] text-[10px] font-bold uppercase tracking-[0.3em] block mb-6">Opportunity</span>
-                <h2 className="text-4xl md:text-6xl font-serif mb-12 leading-tight">
-                  Investment & Growth
-                </h2>
-                <div className="space-y-8 text-lg font-light leading-loose text-zinc-300">
-                   <p>
-                      Rooted in solid wood furniture and driven by inspired design, WOODSLABS has attracted significant attention. 
-                      We aim to connect with brand owners, designers, and showrooms through innovative models.
-                   </p>
-                   <p>
-                      We empower personalized franchise cooperation with tailored solutions. Join us in shaping modernist spaces that blend humanity and nature.
-                   </p>
-                </div>
-                
-                <Link 
-                  href="/contact" 
-                  className="inline-block mt-16 px-12 py-4 border border-white/20 text-white uppercase tracking-[0.3em] text-[10px] font-bold hover:bg-white hover:text-black transition-all duration-500"
-                >
-                  Contact For Inquiry
-                </Link>
-            </FadeInSection>
-         </div>
-      </section>
-
-      {/* 5. Process Flow */}
-      <section className="py-32 px-6 bg-[#FAF9F6]">
-         <div className="max-w-7xl mx-auto">
-             <div className="text-center mb-20">
-                 <span className="text-[#d4a373] text-[10px] font-bold uppercase tracking-[0.3em] block mb-4">The Process</span>
-                 <h2 className="text-4xl md:text-5xl font-serif text-[#1C1917]">Franchise Roadmap</h2>
-             </div>
-             
-             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {steps.map((step, idx) => (
-                   <FadeInSection key={idx} className="text-center group">
-                      <div className="w-full aspect-square border border-zinc-200 flex flex-col items-center justify-center p-4 group-hover:border-[#d4a373] group-hover:bg-white transition-all duration-500 relative overflow-hidden">
-                          <span className="text-4xl font-serif text-zinc-200 group-hover:text-[#d4a373]/20 transition-colors absolute top-2 right-4 font-bold">
-                             {step.num}
-                          </span>
-                          <span className="text-[#1C1917] font-serif text-lg z-10 relative mt-4">
-                             {step.title}
-                          </span>
-                          <div className="w-8 h-[1px] bg-[#d4a373] mt-4 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
-                      </div>
-                   </FadeInSection>
-                ))}
-             </div>
-         </div>
-      </section>
-
-      {/* 6. Footer */}
-      <footer className="py-20 bg-[#0a0a0a] text-white border-t border-white/5 px-8 md:px-12 mt-auto">
-        <div className="max-w-8xl mx-auto text-center space-y-8">
-            <h2 className="text-4xl font-serif font-bold tracking-[0.2em] uppercase text-white opacity-50">WOODSLABS</h2>
-            <div className="text-[10px] text-zinc-600 uppercase tracking-widest">
-              &copy; 2026 Woodslabs Industry Co., Ltd.
+      {/* ══ ADVANTAGES — ZigZag ══ */}
+      <div className="space-y-0">
+        {ADVANTAGES.map((a, i) => (
+          <section key={i} className={`flex flex-col ${a.reverse ? 'md:flex-row-reverse' : 'md:flex-row'} min-h-[560px] md:h-[620px]`}>
+            {/* image */}
+            <div className="w-full md:w-1/2 h-[50vw] md:h-full overflow-hidden relative group">
+              <img src={a.img} alt={a.title}
+                className="w-full h-full object-cover transition-transform duration-[2s] ease-out group-hover:scale-110"
+                style={{ 
+                  backfaceVisibility: 'hidden', 
+                  transform: 'translateZ(0)', 
+                  WebkitFontSmoothing: 'subpixel-antialiased' 
+                }} 
+              />
+              <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-700" />
+              <div className="absolute bottom-6 right-6 font-serif text-white/15 text-8xl leading-none select-none pointer-events-none">
+                {a.n?.replace("0", "").split("—")[0].trim() || String(i + 1).padStart(2, '0')}
+              </div>
             </div>
+            {/* text */}
+            <div className={`w-full md:w-1/2 flex items-center ${i % 2 === 0 ? 'bg-white' : 'bg-[#F7F4EF]'}`}>
+              <div className="p-10 md:p-20 lg:p-24 w-full">
+                <FadeIn>
+                  <Tag text={a.tag} />
+                  <h3 className="font-serif text-[#1C1917] leading-snug mb-2"
+                    style={{ fontSize: 'clamp(1.5rem, 2.5vw, 2.8rem)' }}>
+                    {a.title}
+                  </h3>
+                  <p className="text-xs text-zinc-400 italic mb-8 tracking-wider">{a.titleEn}</p>
+                  <p className="text-zinc-500 font-light leading-[1.95] text-sm md:text-[0.95rem] text-justify">
+                    {a.desc}
+                  </p>
+                </FadeIn>
+              </div>
+            </div>
+          </section>
+        ))}
+      </div>
+
+      {/* ══ SERVICES ══ */}
+      <section className="py-0 bg-[#1C1917] overflow-hidden">
+        {/* top image strip */}
+        <div className="w-full h-64 md:h-72 relative overflow-hidden">
+          <img src="https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/joinshop7-l6un4.webp"
+            alt="" className="w-full h-full object-cover opacity-25"
+            style={{ 
+              backfaceVisibility: 'hidden', 
+              transform: 'translateZ(0)', 
+              WebkitFontSmoothing: 'subpixel-antialiased' 
+            }} 
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#1C1917]" />
+          <div className="absolute inset-0 flex items-end justify-center pb-12">
+            <FadeIn className="text-center">
+              <Tag text="Support System — Exclusive Services" />
+              <h2 className="font-serif text-white" style={{ fontSize: 'clamp(1.8rem, 3.5vw, 3.5rem)' }}>
+                สิทธิประโยชน์<span className="italic text-[#C8935A]">เฉพาะพาร์ทเนอร์</span>
+              </h2>
+            </FadeIn>
+          </div>
         </div>
+
+        <div className="max-w-6xl mx-auto px-6 pb-28 pt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-white/5">
+            {SERVICES.map((s, i) => (
+              <FadeIn key={i} delay={i * 60}>
+                <div className="group bg-[#1C1917] p-8 md:p-10 hover:bg-white/4 transition-colors duration-500 cursor-default">
+                  <div className="flex items-start gap-5">
+                    <p className="font-serif text-2xl text-white/10 group-hover:text-[#C8935A] transition-colors duration-500 leading-none flex-shrink-0 pt-0.5">{s.n}</p>
+                    <div>
+                      <p className="font-serif text-white text-lg mb-1 group-hover:text-[#C8935A] transition-colors duration-500">{s.th}</p>
+                      <p className="text-[#C8935A] text-[8px] uppercase tracking-[0.4em] mb-3 opacity-60">{s.en}</p>
+                      <p className="text-white/35 text-sm font-light leading-relaxed group-hover:text-white/55 transition-colors duration-500">{s.desc}</p>
+                    </div>
+                  </div>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ INVESTMENT PARALLAX ══ */}
+      <section className="relative py-52 px-6 bg-fixed bg-cover bg-center overflow-hidden"
+        style={{ backgroundImage: `url("https://zexflchjcycxrpjkuews.supabase.co/storage/v1/object/public/site-assets/general/joinshop7-l6un4.webp")` }}>
+        <div className="absolute inset-0 bg-black/65" />
+        <div className="relative z-10 max-w-3xl mx-auto text-center text-white">
+          <FadeIn>
+            <Tag text="Opportunity — Investment & Growth" />
+            <h2 className="font-serif text-white leading-snug mb-10"
+              style={{ fontSize: 'clamp(1.8rem, 4vw, 4rem)' }}>
+              โอกาสลงทุน<br />
+              <span className="italic text-[#C8935A]">ที่เติบโตไปด้วยกัน</span>
+            </h2>
+            <p className="text-white/60 font-light text-sm md:text-base max-w-xl mx-auto leading-loose mb-4">
+              WOODSLABS เติบโตจากรากฐานเฟอร์นิเจอร์ไม้เนื้อแข็งสู่แบรนด์ระดับนานาชาติ
+              เราพร้อมร่วมมือกับเจ้าของแบรนด์ นักออกแบบ และโชว์รูมผ่านรูปแบบความร่วมมือที่ยืดหยุ่น
+            </p>
+            <p className="text-white/60 font-light text-sm md:text-base max-w-xl mx-auto leading-loose mb-14">
+              เราสนับสนุนแฟรนไชส์แบบเฉพาะตัว พร้อมโซลูชันที่ออกแบบเพื่อคุณโดยเฉพาะ
+              ร่วมสร้างพื้นที่ที่ผสมผสานความเป็นมนุษย์และธรรมชาติในยุคใหม่
+            </p>
+            <Link href="/contact"
+              className="group relative inline-flex items-center gap-3 px-12 py-4 border border-white/20 text-[10px] font-bold uppercase tracking-[0.35em] overflow-hidden transition-all duration-500 hover:border-[#C8935A]">
+              <span className="absolute inset-0 w-0 group-hover:w-full bg-[#C8935A] transition-all duration-500 ease-out" />
+              <span className="relative z-10 group-hover:text-white transition-colors duration-500">ติดต่อสอบถาม</span>
+            </Link>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ══ FRANCHISE STEPS ══ */}
+      <section className="py-32 px-6 bg-[#F7F4EF]">
+        <div className="max-w-7xl mx-auto">
+          <FadeIn className="text-center mb-20">
+            <Tag text="The Process — Franchise Roadmap" />
+            <h2 className="font-serif text-[#1C1917]" style={{ fontSize: 'clamp(1.8rem, 3vw, 3rem)' }}>
+              เส้นทางสู่การเป็นพาร์ทเนอร์
+            </h2>
+          </FadeIn>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px bg-[#E8E2D9]">
+            {STEPS.map((s, i) => (
+              <FadeIn key={i} delay={i * 80}>
+                <div className="group bg-[#F7F4EF] hover:bg-white transition-colors duration-500 p-8 md:p-10 text-center cursor-default relative overflow-hidden">
+                  <p className="font-serif text-5xl text-[#E8E2D9] group-hover:text-[#C8935A]/20 transition-colors duration-500 absolute top-4 right-4 leading-none select-none">
+                    {s.n}
+                  </p>
+                  <div className="relative z-10 pt-8">
+                    <p className="font-serif text-[#1C1917] text-lg mb-1">{s.th}</p>
+                    <p className="text-[#C8935A] text-[8px] uppercase tracking-[0.4em]">{s.en}</p>
+                    <div className="w-6 h-[1px] bg-[#C8935A] mx-auto mt-5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  </div>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ CTA ══ */}
+      <section className="py-32 px-6 bg-white text-center border-t border-[#E8E2D9]">
+        <FadeIn>
+          <Tag text="Start Your Journey" />
+          <h2 className="font-serif text-[#1C1917] mb-4" style={{ fontSize: 'clamp(1.8rem, 3.5vw, 3.5rem)' }}>
+            พร้อมเริ่มต้นกับเราหรือยัง?
+          </h2>
+          <p className="text-zinc-500 mb-12 max-w-lg mx-auto font-light leading-relaxed text-sm md:text-base">
+            ส่งข้อความมาหาเราวันนี้ ทีมงานของเราพร้อมให้คำปรึกษาและตอบทุกคำถาม
+            เพื่อช่วยให้คุณตัดสินใจได้อย่างมั่นใจ
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/contact"
+              className="group relative inline-flex items-center gap-3 px-10 py-4 border border-[#1C1917]/25 text-[10px] font-bold uppercase tracking-[0.35em] overflow-hidden transition-all duration-500 hover:border-[#C8935A]">
+              <span className="absolute inset-0 w-0 group-hover:w-full bg-[#C8935A] transition-all duration-500 ease-out" />
+              <span className="relative z-10 group-hover:text-white transition-colors duration-500">ติดต่อเรา</span>
+            </Link>
+            <Link href="/about"
+              className="group relative inline-flex items-center gap-3 px-10 py-4 border border-[#1C1917]/25 text-[10px] font-bold uppercase tracking-[0.35em] overflow-hidden transition-all duration-500 hover:border-[#C8935A]">
+              <span className="absolute inset-0 w-0 group-hover:w-full bg-[#C8935A] transition-all duration-500 ease-out" />
+              <span className="relative z-10 group-hover:text-white transition-colors duration-500">เรียนรู้เพิ่มเติม</span>
+            </Link>
+          </div>
+        </FadeIn>
+      </section>
+
+      {/* ══ FOOTER ══ */}
+      <footer className="py-16 bg-[#0a0a0a] text-zinc-500 border-t border-white/5 text-center">
+        <p className="font-serif text-white/20 text-4xl tracking-[0.4em] uppercase mb-6">WOODSLABS</p>
+        <p className="text-[10px] uppercase tracking-widest mb-1">© 2026 Woodslabs Industry Co., Ltd. — BY WOODDEN™</p>
+        <p className="text-[9px] opacity-40 normal-case mt-1">"making every piece of wood warm the world."</p>
       </footer>
+
     </div>
   );
 }

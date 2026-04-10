@@ -123,17 +123,26 @@ export default function Navbar() {
     setIsDropdownOpen(false);
   }, [pathname]);
 
-  const isHomePage = pathname === '/';
-  const isThemeDark = !isHomePage || isScrolled || isMobileOpen;
+  // กลุ่ม 1: มี dark hero image → navbar โปร่งใส + ตัวอักษรขาว
+  const isDarkHeroPage = pathname === '/' || pathname === '/about' || pathname === '/franchisee';
+  // กลุ่ม 2: พื้นหลังสว่าง → navbar โปร่งใส + ตัวอักษรดำ
+  const isLightHeroPage = pathname === '/woodslab' || pathname === '/contact' || pathname.startsWith('/woodslab/product');
+  const isHeroPage = isDarkHeroPage || isLightHeroPage;
+
+  // Navbar มีพื้นขาวเมื่อ: scroll ลง / เปิด mobile menu / ไม่ใช่หน้า hero
+  const isThemeDark = !isHeroPage || isScrolled || isMobileOpen;
+  // ตัวอักษรขาวเฉพาะ dark hero page ที่ยังไม่ scroll
+  const useWhiteText = isDarkHeroPage && !isScrolled && !isMobileOpen;
+
   const commonTransition = "transition-all duration-500 ease-in-out";
-  const mainTextColor = isThemeDark ? 'text-zinc-800' : 'text-white';
+  const mainTextColor = useWhiteText ? 'text-white' : 'text-zinc-800';
   const navBgClass = isThemeDark
-    ? 'bg-white border-b border-zinc-100 py-3 md:py-4' 
+    ? 'bg-white border-b border-zinc-100 py-3 md:py-4'
     : 'bg-transparent border-transparent py-6';
 
   const UserAvatar = () => {
     const avatarUrl = getImageUrl(user?.avatar_url, user?.created_at);
-    const avatarBorder = isThemeDark ? 'border-zinc-300 hover:border-[#d4a373]' : 'border-white/50 hover:border-white';
+    const avatarBorder = useWhiteText ? 'border-white/50 hover:border-white' : 'border-zinc-300 hover:border-[#d4a373]';
     
     return (
         <div className={`w-8 h-8 rounded-full overflow-hidden border flex items-center justify-center text-[10px] font-serif relative cursor-pointer ${commonTransition} ${avatarBorder} ${mainTextColor}`}>
@@ -161,7 +170,7 @@ export default function Navbar() {
                 <img 
                   src="/wood_slabs_photo/icon.png" 
                   alt="Woodslabs Logo" 
-                  className={`object-contain ${commonTransition} ${isThemeDark ? 'h-7 md:h-9' : 'h-10 md:h-12 brightness-0 invert'}`}
+                  className={`object-contain ${commonTransition} ${useWhiteText ? 'h-10 md:h-12 brightness-0 invert' : 'h-7 md:h-9'}`}
                 />
                 <span className={`font-serif font-bold uppercase tracking-widest text-lg md:text-xl ${commonTransition} ${mainTextColor} whitespace-nowrap`}>
                   WOODSLABS
@@ -213,15 +222,15 @@ export default function Navbar() {
                                 <Link href="/profile" className="flex items-center gap-3 px-6 py-3 text-xs text-zinc-600 hover:bg-zinc-50 hover:text-[#d4a373] transition-colors uppercase tracking-wider">
                                     <IconProfile className="w-4 h-4" /> My Profile
                                 </Link>
-                                <Link href="/cart" className="flex items-center gap-3 px-6 py-3 text-xs text-zinc-600 hover:bg-zinc-50 hover:text-[#d4a373] transition-colors uppercase tracking-wider">
+                                {/* <Link href="/cart" className="flex items-center gap-3 px-6 py-3 text-xs text-zinc-600 hover:bg-zinc-50 hover:text-[#d4a373] transition-colors uppercase tracking-wider">
                                     <IconShoppingCart className="w-4 h-4" /> My Cart ({cartCount})
-                                </Link>
+                                </Link> */}
                                 <Link href="/favorites" className="flex items-center gap-3 px-6 py-3 text-xs text-zinc-600 hover:bg-zinc-50 hover:text-[#d4a373] transition-colors uppercase tracking-wider">
                                     <IconHeart className="w-4 h-4" /> My Favorites
                                 </Link>
-                                <Link href="/my-orders" className="flex items-center gap-3 px-6 py-3 text-xs text-zinc-600 hover:bg-zinc-50 hover:text-[#d4a373] transition-colors uppercase tracking-wider">
+                                {/* <Link href="/my-orders" className="flex items-center gap-3 px-6 py-3 text-xs text-zinc-600 hover:bg-zinc-50 hover:text-[#d4a373] transition-colors uppercase tracking-wider">
                                     <IconPackage className="w-4 h-4" /> My Reservations
-                                </Link>
+                                </Link> */}
                             </div>
                             <div className="border-t border-zinc-50 mt-1 pt-1 pb-1">
                                 <button onClick={handleLogout} className="w-full flex items-center gap-3 px-6 py-3 text-xs text-red-500 hover:bg-red-50 transition-colors text-left uppercase tracking-wider">

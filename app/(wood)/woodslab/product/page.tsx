@@ -237,8 +237,8 @@ function ProductContent() {
     if (!product) return []
     const s = product.specs || {}
     const rows: any[] = []
-    const HIDE = ["images", "gallery", "main_image", "description", "pending"]
-    const LABELS: any = { size:"Size", size_text:"Size", dimensions:"Dimensions", material:"Material", wood_type:"Material", finish:"Finish", grade:"Grade", origin:"Origin", panel_design:"Panel Design", panel_craft:"Panel Craft", edge_design:"Edge Design", color_craft:"Color Craft", texture_craft:"Texture Craft", brightness:"Brightness", weight:"Weight", spec_type:"Type", type:"Type" }
+    const HIDE = ["images", "gallery", "main_image", "description", "pending", "grade"]
+    const LABELS: any = { size:"Size", size_text:"Size", dimensions:"Dimensions", material:"Material", wood_type:"Material", finish:"Finish", grade:"Grade", origin:"Origin", panel_design:"Panel Design", panel_craft:"Panel Craft", edge_design:"Edge Design", color_craft:"Color Craft", texture_craft:"Texture Craft", brightness:"Brightness", weight:"Weight", spec_type:"Type", type:"Type", width_mm:"Width (mm)", length_mm:"Length (mm)", thickness_mm:"Thickness (mm)", width_cm:"Width (mm)", length_cm:"Length (mm)", thickness_cm:"Thickness (mm)" }
 
     const seenLabels = new Set<string>()
     Object.entries(s).forEach(([k, v]) => {
@@ -382,7 +382,7 @@ const maxStock = getStockQty(product)
     <>
       <style jsx global>{`
         /* Global & Layout */
-        .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .wrap { max-width: 1200px; margin: 0 auto; padding: 100px 20px 20px; }
         .topbar { margin-bottom: 20px; }
         .back-link { cursor: pointer; display: inline-block; color: #666; font-size: 0.9rem; transition: color 0.2s; }
         .back-link:hover { color: #000; text-decoration: underline; }

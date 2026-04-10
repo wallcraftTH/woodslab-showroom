@@ -22,7 +22,8 @@ function WoodSlabContent() {
   const [products, setProducts] = useState<any[]>([])
   const [activeDiscounts, setActiveDiscounts] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-  const [page, setPage] = useState(0)
+  // 🔥 URL ใช้เลข 1-based (?page=21) แต่ internal ใช้ 0-based (page=20)
+  const page = Math.max(0, parseInt(searchParams.get('page') || '1', 10) - 1)
   const [pageInfo, setPageInfo] = useState("—")
   const [totalPages, setTotalPages] = useState(0)
   const [totalCount, setTotalCount] = useState(0)
@@ -58,9 +59,22 @@ function WoodSlabContent() {
     return calculateProductDiscount(product, activeDiscounts)
   }, [activeDiscounts])
 
+  // 🔥 setPage รับ 0-based แล้วเขียน 1-based ลง URL
+  // หน้าแรก (0) → ลบ ?page ออก / หน้าอื่น → ?page=2, ?page=21
+  const setPage = useCallback((newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    const urlPage = newPage + 1           // แปลง 0-based → 1-based
+    if (urlPage <= 1) {
+      params.delete('page')               // หน้า 1 ไม่ต้องใส่ใน URL
+    } else {
+      params.set('page', String(urlPage)) // ?page=21 ตรงกับที่ user เห็น
+    }
+    router.replace(`?${params.toString()}`)
+  }, [searchParams, router])
+
   const handleCategoryChange = (cat: 'slabs' | 'rough') => {
+    // รีเซ็ต page ไปด้วยในครั้งเดียว ไม่ต้อง setPage แยก
     router.push(`/woodslab?cat=${cat}`)
-    setPage(0)
     setFilters(prev => ({ ...prev, type: "", material: "", panel: "" }))
   }
 
@@ -190,7 +204,7 @@ function WoodSlabContent() {
         [data-theme="dark"] .cat-btn.active { background: #fff; color: #000; border-color: #fff; }
       `}</style>
 
-      <div className="wrap">
+      <div className="wrap" style={{ paddingTop: '100px' }}>
         <header>
           <h1>The Best <span>Wood</span></h1>
           <div className="subtitle">

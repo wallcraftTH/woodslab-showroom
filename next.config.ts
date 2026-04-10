@@ -1,25 +1,32 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-
-  // เก็บอันนี้ไว้ถ้าอยากข้าม Error ภาษา (TypeScript)
   typescript: {
-    ignoreBuildErrors: true, 
+    ignoreBuildErrors: true,
   },
-
-  // ✅ เพิ่มส่วนนี้เข้าไปเพื่อแก้ปัญหาโหลดรูปไม่ขึ้น
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'image.ixiumu.cn', // อนุญาตโดเมนรูปไม้ (ixiumu)
+        hostname: 'image.ixiumu.cn',
       },
       {
         protocol: 'https',
-        hostname: 'zexflchjcycxrpjkuews.supabase.co', // อนุญาตโดเมน Supabase (เผื่อไว้)
+        hostname: 'zexflchjcycxrpjkuews.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'pub-258bd10e7e8c4a7690a74c54cfbdef93.r2.dev',
       },
     ],
+  },
+  // ✅ บอก Turbopack ให้ treat canvas เป็น empty module (react-pdf ต้องการ)
+  experimental: {
+    turbo: {
+      resolveAlias: {
+        canvas: './empty-canvas.ts',
+      },
+    },
   },
 };
 
