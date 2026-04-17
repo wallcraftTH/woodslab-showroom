@@ -686,7 +686,7 @@ const maxStock = getStockQty(product)
                   </>
                 ) : currency(product.price)}
               </div>
-              <div className="vat-note">Tax included. Shipping calculated at checkout.</div>
+             
             </div>
   
             <div className="qty-row">
